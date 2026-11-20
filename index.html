@@ -390,7 +390,7 @@
     <button class="reload-btn" id="reload-btn" type="button">Anderes Detail freilegen</button>
   </section>
 
-  <footer>
+  <footer id="footer-text">
     Interaktiver Prototyp · Medienzentrale
   </footer>
 
@@ -451,6 +451,34 @@
         title: "Das Augsburger Bronzeportal",
         text: "35 Bronzetafeln auf zwei mächtigen Türflügeln – eines der bedeutendsten mittelalterlichen Kunstwerke Europas, im Original im Diözesanmuseum St. Afra.",
         url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "tuerzieher.jpg",
+        title: "Der Bronze-Türzieher",
+        text: "Kraftvoll gegossene Löwenköpfe mit schwerem Ring schmücken das historische Portal – seit über 1.000 Jahren Blickfang für jeden Besucher.",
+        url: DEFAULT_MUSEUM_URL,
+        credit: "Foto: Rebecca Kennison (CC BY 2.5)"
+      },
+      {
+        image: "bronzekreuz.jpg",
+        title: "Mittelalterliches Bronzekreuz",
+        text: "Ein gekrönter Christus in feiner mittelalterlicher Bronzegusskunst – eines der eindrucksvollsten sakralen Kunstwerke der Sammlung St. Afra.",
+        url: DEFAULT_MUSEUM_URL,
+        credit: "Foto: GFreihalter (CC BY-SA 4.0)"
+      },
+      {
+        image: "vortragekreuz.jpg",
+        title: "Vortragekreuz aus Limoges",
+        text: "Leuchtendes Email, vergoldetes Kupfer und eingefasste Schmucksteine: mittelalterliche Goldschmiedekunst aus der Schatzkammer des Museums.",
+        url: DEFAULT_MUSEUM_URL,
+        credit: "Foto: GFreihalter (CC BY-SA 4.0)"
+      },
+      {
+        image: "ziborium.jpg",
+        title: "Ziborium von 1548",
+        text: "Feinste Gravuren auf vergoldetem Metall zeigen den heiligen Ulrich – ein Glanzstück der Augsburger Goldschmiedekunst im Diözesanmuseum St. Afra.",
+        url: DEFAULT_MUSEUM_URL,
+        credit: "Foto: GFreihalter (CC BY-SA 4.0)"
       }
     ];
 
@@ -467,6 +495,8 @@
     const ctaBtn = document.getElementById("cta-btn");
     const hintText = document.getElementById("hint-text");
     const reloadBtn = document.getElementById("reload-btn");
+    const footerText = document.getElementById("footer-text");
+    const BASE_FOOTER = "Interaktiver Prototyp · Medienzentrale";
 
     // Winziger Offscreen-Masken-Canvas für ultraschnelle Fortschrittsmessung auf Smartphones
     const maskCanvas = document.createElement("canvas");
@@ -515,6 +545,9 @@
       titleEl.textContent = motive.title;
       textEl.textContent = motive.text;
       ctaBtn.href = motive.url || DEFAULT_MUSEUM_URL;
+      footerText.textContent = motive.credit
+        ? `${BASE_FOOTER} · ${motive.credit}`
+        : BASE_FOOTER;
 
       // Nächstes Bild unauffällig vorladen für flüssigen Wechsel
       const next = motives[(index + 1) % motives.length];
