@@ -60,22 +60,27 @@
       align-items: center;
     }
 
-    .brand-logo-wrap {
+    .brand-lockup {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: #ffffff;
-      padding: 4px 11px;
-      border-radius: 8px;
-      margin-bottom: clamp(0.4rem, 1.1dvh, 0.65rem);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(197, 155, 95, 0.35);
+      gap: 0.55rem;
+      margin-bottom: clamp(0.35rem, 1dvh, 0.6rem);
     }
 
-    .brand-logo {
+    .brand-mark {
+      width: clamp(26px, 4dvh, 32px);
+      height: clamp(26px, 4dvh, 32px);
+      flex-shrink: 0;
       display: block;
-      height: clamp(28px, 4.4dvh, 38px);
-      width: auto;
+    }
+
+    .brand-name {
+      font-size: clamp(0.98rem, 3.4vw, 1.15rem);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--bronze-light);
+      line-height: 1.15;
     }
 
     h1 {
@@ -388,8 +393,15 @@
 <body>
 
   <header>
-    <div class="brand-logo-wrap">
-      <img class="brand-logo" src="logo-st-afra.png" alt="Diözesanmuseum St. Afra Augsburg">
+    <div class="brand-lockup">
+      <svg class="brand-mark" viewBox="0 0 80 80" aria-hidden="true">
+        <path fill="#cdcdcf" fill-rule="evenodd" d="M8 7h64v66H8V7zm14 14v38h36V21H22z"/>
+        <polygon fill="#ed1363" points="29,2 53,3 50,24 30,24"/>
+        <polygon fill="#fab163" points="58,28 77,30 75,51 56,50"/>
+        <polygon fill="#0c4ea0" points="32,56 52,56 53,76 30,78"/>
+        <polygon fill="#00a9a4" points="2,31 24,30 24,50 4,50"/>
+      </svg>
+      <span class="brand-name">Diözesanmuseum St. Afra</span>
     </div>
     <h1>Was liegt hier verborgen?</h1>
     <p class="hint" id="hint-text">Mit dem Finger über die Fläche wischen</p>
