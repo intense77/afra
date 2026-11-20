@@ -54,15 +54,28 @@
 
     header {
       max-width: 420px;
-      margin-bottom: clamp(0.45rem, 1.4dvh, 0.9rem);
+      margin-bottom: clamp(0.4rem, 1.3dvh, 0.85rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    .eyebrow {
-      font-size: clamp(0.68rem, 2vw, 0.75rem);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--bronze);
-      margin-bottom: 0.25rem;
+    .brand-logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      padding: 4px 11px;
+      border-radius: 8px;
+      margin-bottom: clamp(0.4rem, 1.1dvh, 0.65rem);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(197, 155, 95, 0.35);
+    }
+
+    .brand-logo {
+      display: block;
+      height: clamp(28px, 4.4dvh, 38px);
+      width: auto;
     }
 
     h1 {
@@ -375,7 +388,9 @@
 <body>
 
   <header>
-    <div class="eyebrow">Diözesanmuseum St. Afra</div>
+    <div class="brand-logo-wrap">
+      <img class="brand-logo" src="logo-st-afra.png" alt="Diözesanmuseum St. Afra Augsburg">
+    </div>
     <h1>Was liegt hier verborgen?</h1>
     <p class="hint" id="hint-text">Mit dem Finger über die Fläche wischen</p>
   </header>
@@ -544,12 +559,24 @@
     let lastFrameTime = 0;
     let dustDistanceAcc = 0;
 
-    // Startmotiv zufällig wählen; danach gezielt der Reihe nach weiterschalten
-    let currentIndex = Math.floor(Math.random() * motives.length);
-    const discoveredIndices = new Set();
+    // Fisher-Yates-Shuffle: zufällige Reihenfolge ohne Wiederholung bis alle Motive durch sind
+    function shuffleMotives(avoidFirstImage) {
+      for (let i = motives.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [motives[i], motives[j]] = [motives[j], motives[i]];
+      }
+      if (avoidFirstImage && motives.length > 1 && motives[0].image === avoidFirstImage) {
+        const swapIdx = 1 + Math.floor(Math.random() * (motives.length - 1));
+        [motives[0], motives[swapIdx]] = [motives[swapIdx], motives[0]];
+      }
+    }
+
+    shuffleMotives();
+    let currentIndex = 0;
+    const discoveredImages = new Set();
 
     function updateProgressBadge() {
-      const count = discoveredIndices.size;
+      const count = discoveredImages.size;
       const total = motives.length;
       progressBadge.textContent = count >= total
         ? `Alle ${total} Details entdeckt`
@@ -936,7 +963,7 @@
     function revealAll() {
       if (isRevealed) return;
       isRevealed = true;
-      discoveredIndices.add(currentIndex);
+      discoveredImages.add(motives[currentIndex].image);
       updateProgressBadge();
       canvas.classList.add("revealed");
       stage.classList.add("is-revealed");
@@ -1005,7 +1032,12 @@
       canvas.classList.remove("revealed");
 
       const finishReset = () => {
-        currentIndex = (currentIndex + 1) % motives.length;
+        const lastImage = motives[currentIndex].image;
+        currentIndex++;
+        if (currentIndex >= motives.length) {
+          shuffleMotives(lastImage);
+          currentIndex = 0;
+        }
         applyMotive(currentIndex);
         stage.classList.remove("is-resetting");
         isRevealed = false;
