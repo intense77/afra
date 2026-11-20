@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#151311">
+  <meta name="description" content="Entdecke verborgene Details des über 1.000 Jahre alten Augsburger Bronzeportals im Diözesanmuseum St. Afra.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Was liegt hier verborgen? – Diözesanmuseum St. Afra">
+  <meta property="og:description" content="Rubbel die Patina frei und entdecke verborgene Details des Augsburger Bronzeportals.">
+  <meta property="og:image" content="portal.jpg">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23151311'/%3E%3Crect x='14' y='10' width='36' height='44' rx='4' fill='none' stroke='%23c59b5f' stroke-width='3.5'/%3E%3Cline x1='32' y1='10' x2='32' y2='54' stroke='%23c59b5f' stroke-width='2.5'/%3E%3Ccircle cx='25' cy='34' r='2.5' fill='%23e2c290'/%3E%3Ccircle cx='39' cy='34' r='2.5' fill='%23e2c290'/%3E%3C/svg%3E">
   <title>Neues entdecken – Diözesanmuseum St. Afra</title>
   <style>
     :root {
@@ -172,8 +179,57 @@
       z-index: 3;
     }
 
+    .swipe-cue {
+      position: absolute;
+      left: 50%;
+      top: 63%;
+      width: 16px;
+      height: 16px;
+      margin-left: -8px;
+      margin-top: -8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(236, 212, 168, 0.85) 0%, rgba(197, 155, 95, 0.22) 60%, transparent 100%);
+      box-shadow: 0 0 12px rgba(226, 194, 144, 0.45);
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      animation: swipe-glide 2.8s ease-in-out 0.9s infinite;
+      transition: opacity 0.35s ease;
+    }
+
+    .stage-wrapper.is-scratching .swipe-cue,
+    .stage-wrapper.is-revealed .swipe-cue {
+      opacity: 0 !important;
+      animation: none;
+    }
+
+    @keyframes swipe-glide {
+      0% {
+        opacity: 0;
+        transform: translate(-28px, 6px) scale(0.75);
+      }
+      18% {
+        opacity: 0.78;
+        transform: translate(-18px, 2px) scale(1);
+      }
+      58% {
+        opacity: 0.72;
+        transform: translate(26px, -4px) scale(0.95);
+      }
+      76%, 100% {
+        opacity: 0;
+        transform: translate(34px, -6px) scale(0.7);
+      }
+    }
+
+    #scratch-canvas:focus-visible {
+      outline: 2px solid var(--bronze-light);
+      outline-offset: -3px;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .patina-shimmer::after {
+      .patina-shimmer::after,
+      .swipe-cue {
         animation: none;
         opacity: 0;
       }
@@ -193,6 +249,14 @@
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
+    }
+
+    .progress-badge {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.18rem;
     }
 
     .motive-title {
@@ -304,12 +368,19 @@
 
   <main class="stage-wrapper" id="stage">
     <img class="reveal-img" id="motive-img" alt="Detail aus dem Diözesanmuseum St. Afra" decoding="async">
-    <canvas id="scratch-canvas"></canvas>
+    <canvas
+      id="scratch-canvas"
+      tabindex="0"
+      role="button"
+      aria-label="Bronze-Patina freirubbeln oder mit Enter direkt aufdecken"
+    ></canvas>
     <div class="patina-shimmer" aria-hidden="true"></div>
+    <div class="swipe-cue" aria-hidden="true"></div>
     <canvas id="particle-canvas" aria-hidden="true"></canvas>
   </main>
 
-  <section class="result-box" id="result-box">
+  <section class="result-box" id="result-box" aria-live="polite">
+    <div class="progress-badge" id="progress-badge"></div>
     <div class="motive-title" id="motive-title"></div>
     <p class="motive-text" id="motive-text"></p>
     <a class="cta-btn" id="cta-btn" href="https://www.museum-st-afra.de/de/">
@@ -392,6 +463,7 @@
     const titleEl = document.getElementById("motive-title");
     const textEl = document.getElementById("motive-text");
     const resultBox = document.getElementById("result-box");
+    const progressBadge = document.getElementById("progress-badge");
     const ctaBtn = document.getElementById("cta-btn");
     const hintText = document.getElementById("hint-text");
     const reloadBtn = document.getElementById("reload-btn");
@@ -426,6 +498,15 @@
 
     // Startmotiv zufällig wählen; danach gezielt der Reihe nach weiterschalten
     let currentIndex = Math.floor(Math.random() * motives.length);
+    const discoveredIndices = new Set();
+
+    function updateProgressBadge() {
+      const count = discoveredIndices.size;
+      const total = motives.length;
+      progressBadge.textContent = count >= total
+        ? `Alle ${total} Details entdeckt`
+        : `${count} von ${total} Details entdeckt`;
+    }
 
     function applyMotive(index) {
       const motive = motives[index];
@@ -802,11 +883,21 @@
     }
 
     function revealAll() {
+      if (isRevealed) return;
       isRevealed = true;
+      discoveredIndices.add(currentIndex);
+      updateProgressBadge();
       canvas.classList.add("revealed");
       stage.classList.add("is-revealed");
       resultBox.classList.add("visible");
       hintText.style.opacity = "0";
+
+      // Sanftes haptisches Feedback auf unterstützten Smartphones (Android)
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(20);
+        } catch (_) {}
+      }
 
       // Sanfter Abschluss-Hauch aus feinem Bronzestaub beim vollständigen Freilegen
       if (!prefersReducedMotion) {
@@ -906,6 +997,15 @@
 
     canvas.addEventListener("pointerup", endScratch);
     canvas.addEventListener("pointercancel", endScratch);
+
+    // Barrierefreier Tastatur-Fallback (Enter / Leertaste deckt direkt auf)
+    canvas.addEventListener("keydown", (e) => {
+      if (isRevealed || isResetting) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        revealAll();
+      }
+    });
 
     reloadBtn.addEventListener("click", resetForNextMotive);
 
