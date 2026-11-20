@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Neues entdecken – Diözesanmuseum St. Afra</title>
+  <style>
+    :root {
+      --bg: #151311;
+      --surface: #201d1a;
+      --bronze: #c59b5f;
+      --bronze-light: #e2c290;
+      --text: #f4f1ea;
+      --muted: #a69f95;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      overscroll-behavior: none;
+      overscroll-behavior-y: none;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100svh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding:
+        calc(clamp(0.65rem, 2dvh, 1.25rem) + env(safe-area-inset-top, 0px))
+        1rem
+        calc(clamp(0.65rem, 2dvh, 1.25rem) + env(safe-area-inset-bottom, 0px));
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    header {
+      max-width: 420px;
+      margin-bottom: clamp(0.45rem, 1.4dvh, 0.9rem);
+    }
+
+    .eyebrow {
+      font-size: clamp(0.68rem, 2vw, 0.75rem);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--bronze);
+      margin-bottom: 0.25rem;
+    }
+
+    h1 {
+      font-size: clamp(1.18rem, 4.2vw, 1.45rem);
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .hint {
+      font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+      color: var(--muted);
+      margin-top: 0.25rem;
+      transition: opacity 0.4s ease;
+    }
+
+    .stage-wrapper {
+      position: relative;
+      width: min(100%, 340px, calc(43dvh * 0.8));
+      aspect-ratio: 4 / 5;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid rgba(197, 155, 95, 0.35);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .reveal-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+
+    #scratch-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+      z-index: 1;
+      transition: opacity 0.75s ease;
+    }
+
+    #scratch-canvas.revealed {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .stage-wrapper.is-resetting #scratch-canvas {
+      transition-duration: 0.35s;
+    }
+
+    .patina-shimmer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 1;
+      transition: opacity 0.75s ease;
+    }
+
+    .patina-shimmer::after {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: linear-gradient(
+        112deg,
+        transparent 34%,
+        rgba(226, 194, 144, 0.04) 44%,
+        rgba(236, 212, 168, 0.14) 50%,
+        rgba(197, 155, 95, 0.05) 56%,
+        transparent 66%
+      );
+      transform: translateX(-65%);
+      animation: patina-sheen 6.5s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .stage-wrapper.is-scratching .patina-shimmer {
+      opacity: 0.45;
+    }
+
+    .stage-wrapper.is-revealed .patina-shimmer {
+      opacity: 0;
+    }
+
+    @keyframes patina-sheen {
+      0%, 18% {
+        transform: translateX(-65%);
+      }
+      55%, 100% {
+        transform: translateX(65%);
+      }
+    }
+
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .patina-shimmer::after {
+        animation: none;
+        opacity: 0;
+      }
+    }
+
+    .result-box {
+      max-width: 360px;
+      width: 100%;
+      margin-top: clamp(0.55rem, 1.5dvh, 1rem);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+    }
+
+    .result-box.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .motive-title {
+      font-size: clamp(0.98rem, 3vw, 1.1rem);
+      font-weight: 600;
+      color: var(--bronze-light);
+      margin-bottom: 0.25rem;
+    }
+
+    .motive-text {
+      font-size: clamp(0.82rem, 2.5vw, 0.92rem);
+      line-height: 1.38;
+      color: var(--text);
+      margin-bottom: clamp(0.55rem, 1.5dvh, 0.95rem);
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      width: 100%;
+      min-height: 44px;
+      padding: clamp(0.65rem, 1.5dvh, 0.88rem) 1rem;
+      background: linear-gradient(135deg, var(--bronze), #9e763e);
+      color: #151311;
+      font-weight: 700;
+      font-size: clamp(0.88rem, 2.6vw, 0.95rem);
+      text-decoration: none;
+      border-radius: 10px;
+      -webkit-tap-highlight-color: transparent;
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      transition:
+        opacity 0.45s ease 0.18s,
+        transform 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s,
+        filter 0.15s ease;
+    }
+
+    .result-box.visible .cta-btn {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .cta-btn:active {
+      transform: scale(0.98);
+      transition-delay: 0s;
+    }
+
+    .cta-arrow {
+      display: inline-block;
+      font-size: 1.05em;
+      line-height: 1;
+      transition: transform 0.2s ease;
+    }
+
+    .result-box.visible .cta-arrow {
+      animation: cta-arrow-nudge 0.7s ease-in-out 0.55s 1;
+    }
+
+    @keyframes cta-arrow-nudge {
+      0%, 100% {
+        transform: translateX(0);
+      }
+      50% {
+        transform: translateX(4px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cta-btn {
+        transition: opacity 0.2s ease;
+        transform: none;
+      }
+
+      .result-box.visible .cta-arrow {
+        animation: none;
+      }
+    }
+
+    .reload-btn {
+      margin-top: clamp(0.3rem, 0.9dvh, 0.65rem);
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: clamp(0.8rem, 2.4vw, 0.85rem);
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0.35rem 0.6rem;
+      min-height: 36px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    footer {
+      margin-top: clamp(0.4rem, 1.2dvh, 1rem);
+      font-size: 0.7rem;
+      color: rgba(166, 159, 149, 0.6);
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="eyebrow">Diözesanmuseum St. Afra</div>
+    <h1>Was liegt hier verborgen?</h1>
+    <p class="hint" id="hint-text">Mit dem Finger über die Fläche wischen</p>
+  </header>
+
+  <main class="stage-wrapper" id="stage">
+    <img class="reveal-img" id="motive-img" alt="Detail aus dem Diözesanmuseum St. Afra" decoding="async">
+    <canvas id="scratch-canvas"></canvas>
+    <div class="patina-shimmer" aria-hidden="true"></div>
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+  </main>
+
+  <section class="result-box" id="result-box">
+    <div class="motive-title" id="motive-title"></div>
+    <p class="motive-text" id="motive-text"></p>
+    <a class="cta-btn" id="cta-btn" href="https://www.museum-st-afra.de/de/">
+      <span>Neues entdecken – zum Museum</span>
+      <span class="cta-arrow" aria-hidden="true">→</span>
+    </a>
+    <button class="reload-btn" id="reload-btn" type="button">Anderes Detail freilegen</button>
+  </section>
+
+  <footer>
+    Interaktiver Prototyp · Medienzentrale
+  </footer>
+
+  <script>
+    // Alle Motive aus dem Projektordner (Details & Gesamtansicht des Augsburger Bronzeportals)
+    const DEFAULT_MUSEUM_URL = "https://www.museum-st-afra.de/de/";
+    const motives = [
+      {
+        image: "mem1_1.jpeg",
+        title: "Der Bär am Baum",
+        text: "Zwischen Vögeln und Laub streckt sich ein Bär nach den Ästen – eines der rätselhaften Naturmotive der über 1.000 Jahre alten Bronzetür.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem2_2.jpeg",
+        title: "Der Kentaur mit Bogen",
+        text: "Antike Sagenwelt im mittelalterlichen Kirchenportal: Der gespannte Bogen des Kentauren fasziniert Besucher seit dem 11. Jahrhundert.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem3_3.jpeg",
+        title: "Der Traubenleser",
+        text: "Ein Mann kostet direkt vom Weinstock – fein gegossene Reliefkunst, deren plastische Details man im Museum aus nächster Nähe sieht.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem4.jpeg",
+        title: "Löwe mit Beute",
+        text: "Kraftvolle Tierdarstellungen prägen die Tafeln des Portals. Jede Szene ist in glänzender Bronze aus der dunklen Fläche herausgearbeitet.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem5.jpeg",
+        title: "Baum zwischen zwei Schlangen",
+        text: "Verborgene Gesichter, gewundene Schlangen und dichte Baumkronen – manche Details der Bronzetafeln fallen erst auf den zweiten Blick auf.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem6_6.jpeg",
+        title: "Gekrönter Krieger mit Fahnenlanze",
+        text: "Mit Schild, Lanze und Krone schreitet diese Gestalt voran – ein eindrucksvolles Zeugnis mittelalterlicher Bronzegusskunst.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem7.jpeg",
+        title: "Begegnung mit der Schlange",
+        text: "Erschrocken weicht die Figur vor der Schlange zurück. Im Diözesanmuseum St. Afra lassen sich die Geschichten hinter den Tafeln entdecken.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "mem8_8.jpeg",
+        title: "Der schreitende Löwe",
+        text: "Majestätisch und klar gezeichnet: Der Löwe gehört zu den markantesten Motiven des Augsburger Bronzeportals.",
+        url: DEFAULT_MUSEUM_URL
+      },
+      {
+        image: "portal.jpg",
+        title: "Das Augsburger Bronzeportal",
+        text: "35 Bronzetafeln auf zwei mächtigen Türflügeln – eines der bedeutendsten mittelalterlichen Kunstwerke Europas, im Original im Diözesanmuseum St. Afra.",
+        url: DEFAULT_MUSEUM_URL
+      }
+    ];
+
+    const canvas = document.getElementById("scratch-canvas");
+    const ctx = canvas.getContext("2d");
+    const particleCanvas = document.getElementById("particle-canvas");
+    const pCtx = particleCanvas.getContext("2d");
+    const stage = document.getElementById("stage");
+    const imgEl = document.getElementById("motive-img");
+    const titleEl = document.getElementById("motive-title");
+    const textEl = document.getElementById("motive-text");
+    const resultBox = document.getElementById("result-box");
+    const ctaBtn = document.getElementById("cta-btn");
+    const hintText = document.getElementById("hint-text");
+    const reloadBtn = document.getElementById("reload-btn");
+
+    // Winziger Offscreen-Masken-Canvas für ultraschnelle Fortschrittsmessung auf Smartphones
+    const maskCanvas = document.createElement("canvas");
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    const MASK_W = 64;
+    const MASK_H = 80;
+    maskCanvas.width = MASK_W;
+    maskCanvas.height = MASK_H;
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let stageWidth = 0;
+    let stageHeight = 0;
+    let dpr = 1;
+    let isDrawing = false;
+    let isRevealed = false;
+    let isResetting = false;
+    let hasStartedScratching = false;
+    let lastPoint = null;
+    let moveCounter = 0;
+    let brushCanvas = null;
+
+    // Partikel-System (läuft nur bei Bedarf per requestAnimationFrame)
+    const particles = [];
+    const MAX_PARTICLES = 90;
+    let rafId = null;
+    let lastFrameTime = 0;
+    let dustDistanceAcc = 0;
+
+    // Startmotiv zufällig wählen; danach gezielt der Reihe nach weiterschalten
+    let currentIndex = Math.floor(Math.random() * motives.length);
+
+    function applyMotive(index) {
+      const motive = motives[index];
+      imgEl.src = motive.image;
+      imgEl.alt = `${motive.title} – Diözesanmuseum St. Afra`;
+      titleEl.textContent = motive.title;
+      textEl.textContent = motive.text;
+      ctaBtn.href = motive.url || DEFAULT_MUSEUM_URL;
+
+      // Nächstes Bild unauffällig vorladen für flüssigen Wechsel
+      const next = motives[(index + 1) % motives.length];
+      const preload = new Image();
+      preload.src = next.image;
+    }
+
+    applyMotive(currentIndex);
+
+    // Vorberechnete Kachel mit feinem metallischem Rauschen (128x128px, sehr schnell)
+    function createNoisePattern(targetCtx) {
+      const size = 128;
+      const tile = document.createElement("canvas");
+      tile.width = size;
+      tile.height = size;
+      const tCtx = tile.getContext("2d");
+      const imgData = tCtx.createImageData(size, size);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const v = Math.random();
+        if (v > 0.52) {
+          // Hellerer, warmer Bronze-Kornpunkt
+          data[i] = 205;
+          data[i + 1] = 178;
+          data[i + 2] = 132;
+          data[i + 3] = Math.floor((v - 0.52) * 52);
+        } else if (v < 0.44) {
+          // Dunkler Oxid-Punkt
+          data[i] = 12;
+          data[i + 1] = 14;
+          data[i + 2] = 12;
+          data[i + 3] = Math.floor((0.44 - v) * 68);
+        } else {
+          data[i + 3] = 0;
+        }
+      }
+      tCtx.putImageData(imgData, 0, 0);
+      return targetCtx.createPattern(tile, "repeat");
+    }
+
+    // Vorberechneter weicher, leicht organischer Rubbel-Pinsel
+    function createScratchBrush(radius) {
+      const size = radius * 2;
+      const bCanvas = document.createElement("canvas");
+      bCanvas.width = size;
+      bCanvas.height = size;
+      const bCtx = bCanvas.getContext("2d");
+
+      const grad = bCtx.createRadialGradient(radius, radius, radius * 0.42, radius, radius, radius);
+      grad.addColorStop(0, "rgba(0, 0, 0, 1)");
+      grad.addColorStop(0.72, "rgba(0, 0, 0, 0.92)");
+      grad.addColorStop(0.9, "rgba(0, 0, 0, 0.35)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      bCtx.fillStyle = grad;
+      bCtx.fillRect(0, 0, size, size);
+
+      return bCanvas;
+    }
+
+    function drawPatinaSurface(w, h) {
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+
+      // 1. Tiefer, dunkel oxidierter Bronze-Grundton
+      const baseGrad = ctx.createLinearGradient(0, 0, w, h);
+      baseGrad.addColorStop(0, "#2f332c");
+      baseGrad.addColorStop(0.32, "#26231d");
+      baseGrad.addColorStop(0.68, "#222925");
+      baseGrad.addColorStop(1, "#181613");
+      ctx.fillStyle = baseGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Organische Patina-Flecken (Oxidation in Grünspan-Schiefer, Umbra & Altbronze)
+      const patinaTones = [
+        [64, 86, 76],   // dezenter Grünspan / oxidierte Patina
+        [49, 66, 59],   // dunkles Patina-Schiefergrün
+        [108, 82, 48],  // gealterte warme Bronze
+        [152, 118, 69], // leicht beriebene Altbronze-Stelle
+        [24, 21, 18]    // tiefe Oxid-Schatten
+      ];
+
+      for (let i = 0; i < 34; i++) {
+        const cx = Math.random() * w;
+        const cy = Math.random() * h;
+        const r = (0.14 + Math.random() * 0.34) * Math.max(w, h);
+        const tone = patinaTones[i % patinaTones.length];
+        const alpha = tone[0] > 120 ? (0.04 + Math.random() * 0.06) : (0.08 + Math.random() * 0.13);
+
+        const blotch = ctx.createRadialGradient(cx, cy, r * 0.08, cx, cy, r);
+        blotch.addColorStop(0, `rgba(${tone[0]}, ${tone[1]}, ${tone[2]}, ${alpha.toFixed(3)})`);
+        blotch.addColorStop(0.6, `rgba(${tone[0]}, ${tone[1]}, ${tone[2]}, ${(alpha * 0.45).toFixed(3)})`);
+        blotch.addColorStop(1, `rgba(${tone[0]}, ${tone[1]}, ${tone[2]}, 0)`);
+
+        ctx.fillStyle = blotch;
+        ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      }
+
+      // 3. Feine Guss- & Bürstenstruktur (sehr dezente metallische Linien)
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < 55; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const len = 18 + Math.random() * 55;
+        const angle = -0.35 + (Math.random() - 0.5) * 0.4;
+        const isWarm = Math.random() > 0.45;
+        ctx.strokeStyle = isWarm
+          ? `rgba(197, 155, 95, ${(0.025 + Math.random() * 0.04).toFixed(3)})`
+          : `rgba(12, 11, 9, ${(0.05 + Math.random() * 0.06).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+
+      // 4. Metallisches Feinkorn / Rauschen
+      const noisePattern = createNoisePattern(ctx);
+      if (noisePattern) {
+        ctx.fillStyle = noisePattern;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // 5. Mikro-Sprenkel (feinste Mineral- & Bronze-Einschlüsse)
+      for (let i = 0; i < 240; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const r = 0.5 + Math.random() * 1.4;
+        const pick = Math.random();
+        if (pick < 0.45) {
+          ctx.fillStyle = `rgba(214, 178, 120, ${(0.05 + Math.random() * 0.09).toFixed(3)})`;
+        } else if (pick < 0.78) {
+          ctx.fillStyle = `rgba(82, 108, 95, ${(0.06 + Math.random() * 0.08).toFixed(3)})`;
+        } else {
+          ctx.fillStyle = `rgba(10, 9, 8, ${(0.12 + Math.random() * 0.14).toFixed(3)})`;
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 6. Sanfte Randvignette & dezente metallische Kante
+      const vignette = ctx.createRadialGradient(w * 0.5, h * 0.48, w * 0.22, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+      vignette.addColorStop(0, "rgba(226, 194, 144, 0.04)");
+      vignette.addColorStop(0.65, "rgba(0, 0, 0, 0.08)");
+      vignette.addColorStop(1, "rgba(8, 7, 6, 0.44)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "rgba(226, 194, 144, 0.12)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+
+      // 7. Dezenter, leicht geprägter Hinweis auf der Bronze-Fläche
+      const centerX = w / 2;
+      const centerY = h / 2;
+
+      ctx.strokeStyle = "rgba(197, 155, 95, 0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 36, centerY - 22);
+      ctx.lineTo(centerX + 36, centerY - 22);
+      ctx.moveTo(centerX - 36, centerY + 20);
+      ctx.lineTo(centerX + 36, centerY + 20);
+      ctx.stroke();
+
+      ctx.font = "600 17px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // Tiefenschatten für Präge-Optik
+      ctx.fillStyle = "rgba(10, 9, 7, 0.65)";
+      ctx.fillText("Hier freirubbeln", centerX, centerY + 1);
+
+      ctx.fillStyle = "rgba(232, 206, 162, 0.84)";
+      ctx.fillText("Hier freirubbeln", centerX, centerY);
+
+      ctx.restore();
+    }
+
+    function initCanvas() {
+      const rect = stage.getBoundingClientRect();
+      stageWidth = rect.width;
+      stageHeight = rect.height;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(stageWidth * dpr);
+      canvas.height = Math.round(stageHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      particleCanvas.width = Math.round(stageWidth * dpr);
+      particleCanvas.height = Math.round(stageHeight * dpr);
+      pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Fortschritts-Maske komplett füllen
+      maskCtx.globalCompositeOperation = "source-over";
+      maskCtx.fillStyle = "#000";
+      maskCtx.fillRect(0, 0, MASK_W, MASK_H);
+
+      brushCanvas = createScratchBrush(26);
+      drawPatinaSurface(stageWidth, stageHeight);
+    }
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (stageWidth / (rect.width || stageWidth)),
+        y: (e.clientY - rect.top) * (stageHeight / (rect.height || stageHeight))
+      };
+    }
+
+    function spawnParticles(x, y, vxHint, vyHint, count) {
+      if (prefersReducedMotion) return;
+
+      for (let i = 0; i < count; i++) {
+        if (particles.length >= MAX_PARTICLES) {
+          particles.shift();
+        }
+        const isGlint = Math.random() < 0.36;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = isGlint ? (0.35 + Math.random() * 1.1) : (0.45 + Math.random() * 1.5);
+        const offsetR = Math.random() * 18;
+
+        particles.push({
+          x: x + Math.cos(angle) * offsetR,
+          y: y + Math.sin(angle) * offsetR,
+          vx: Math.cos(angle) * speed + vxHint * 0.14,
+          vy: Math.sin(angle) * speed + vyHint * 0.14 - (isGlint ? 0.35 : 0.1),
+          size: isGlint ? (1.1 + Math.random() * 1.5) : (0.9 + Math.random() * 1.9),
+          life: 0,
+          maxLife: isGlint ? (380 + Math.random() * 380) : (420 + Math.random() * 440),
+          isGlint,
+          twinklePhase: Math.random() * Math.PI * 2,
+          color: isGlint
+            ? (Math.random() > 0.45 ? "238, 212, 162" : "205, 163, 102")
+            : (Math.random() > 0.5 ? "118, 126, 114" : "138, 115, 84")
+        });
+      }
+
+      if (!rafId) {
+        lastFrameTime = performance.now();
+        rafId = requestAnimationFrame(updateParticles);
+      }
+    }
+
+    function updateParticles(now) {
+      const dt = Math.min(now - lastFrameTime, 40);
+      lastFrameTime = now;
+      const step = dt / 16.67;
+
+      pCtx.clearRect(0, 0, stageWidth, stageHeight);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life += dt;
+
+        if (p.life >= p.maxLife) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        const progress = p.life / p.maxLife;
+        p.vx *= Math.pow(0.955, step);
+        p.vy = p.vy * Math.pow(0.96, step) + (p.isGlint ? 0.014 : 0.038) * step;
+        p.x += p.vx * step;
+        p.y += p.vy * step;
+
+        let alpha = (1 - progress) * (progress < 0.15 ? progress / 0.15 : 1);
+        if (p.isGlint) {
+          const twinkle = 0.65 + 0.35 * Math.sin(p.twinklePhase + p.life * 0.022);
+          alpha *= twinkle * 0.85;
+        } else {
+          alpha *= 0.55;
+        }
+
+        pCtx.fillStyle = `rgba(${p.color}, ${alpha.toFixed(3)})`;
+        pCtx.beginPath();
+        pCtx.arc(p.x, p.y, p.size * (1 - progress * 0.35), 0, Math.PI * 2);
+        pCtx.fill();
+
+        // Zarter Lichtstern bei den hellsten Glanzpartikeln
+        if (p.isGlint && p.size > 1.8 && alpha > 0.32) {
+          const arm = p.size * 2.1;
+          pCtx.strokeStyle = `rgba(${p.color}, ${(alpha * 0.6).toFixed(3)})`;
+          pCtx.lineWidth = 0.7;
+          pCtx.beginPath();
+          pCtx.moveTo(p.x - arm, p.y);
+          pCtx.lineTo(p.x + arm, p.y);
+          pCtx.moveTo(p.x, p.y - arm);
+          pCtx.lineTo(p.x, p.y + arm);
+          pCtx.stroke();
+        }
+      }
+
+      if (particles.length > 0) {
+        rafId = requestAnimationFrame(updateParticles);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function scratch(pos) {
+      if (!brushCanvas) return;
+      if (!hasStartedScratching) {
+        hasStartedScratching = true;
+        stage.classList.add("is-scratching");
+      }
+
+      const brushR = 26;
+      const from = lastPoint || pos;
+      const dx = pos.x - from.x;
+      const dy = pos.y - from.y;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(dist / 6));
+
+      // Haupt-Canvas mit weichem Pinsel freirubbeln
+      ctx.globalCompositeOperation = "destination-out";
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const sx = from.x + dx * t;
+        const sy = from.y + dy * t;
+        ctx.drawImage(brushCanvas, sx - brushR, sy - brushR);
+      }
+
+      // Fortschritts-Maske synchron aktualisieren
+      const scaleX = MASK_W / stageWidth;
+      const scaleY = MASK_H / stageHeight;
+      maskCtx.globalCompositeOperation = "destination-out";
+      maskCtx.lineWidth = Math.max(4, brushR * 1.75 * scaleX);
+      maskCtx.lineCap = "round";
+      maskCtx.lineJoin = "round";
+      maskCtx.beginPath();
+      if (lastPoint) {
+        maskCtx.moveTo(from.x * scaleX, from.y * scaleY);
+        maskCtx.lineTo(pos.x * scaleX, pos.y * scaleY);
+      } else {
+        maskCtx.arc(pos.x * scaleX, pos.y * scaleY, Math.max(2, brushR * 0.85 * scaleX), 0, Math.PI * 2);
+      }
+      maskCtx.stroke();
+
+      // Dezente Staub- & Glanzpartikel distanzabhängig erzeugen
+      dustDistanceAcc += dist;
+      if (!lastPoint) {
+        spawnParticles(pos.x, pos.y, 0, 0, 5);
+      } else if (dustDistanceAcc >= 12) {
+        const count = Math.min(4, Math.floor(dustDistanceAcc / 10));
+        spawnParticles(pos.x, pos.y, dx / Math.max(1, dist) * 3, dy / Math.max(1, dist) * 3, count);
+        dustDistanceAcc = 0;
+      }
+
+      lastPoint = pos;
+    }
+
+    function checkProgress() {
+      if (isRevealed) return;
+      const data = maskCtx.getImageData(0, 0, MASK_W, MASK_H).data;
+      let cleared = 0;
+      const total = MASK_W * MASK_H;
+
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] < 128) cleared++;
+      }
+
+      if (cleared / total > 0.42) {
+        revealAll();
+      }
+    }
+
+    function revealAll() {
+      isRevealed = true;
+      canvas.classList.add("revealed");
+      stage.classList.add("is-revealed");
+      resultBox.classList.add("visible");
+      hintText.style.opacity = "0";
+
+      // Sanfter Abschluss-Hauch aus feinem Bronzestaub beim vollständigen Freilegen
+      if (!prefersReducedMotion) {
+        for (let i = 0; i < 20; i++) {
+          spawnParticles(
+            stageWidth * (0.18 + Math.random() * 0.64),
+            stageHeight * (0.18 + Math.random() * 0.64),
+            (Math.random() - 0.5) * 1.6,
+            -0.8 - Math.random() * 1.2,
+            1
+          );
+        }
+      }
+    }
+
+    function endScratch() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      lastPoint = null;
+      dustDistanceAcc = 0;
+      checkProgress();
+    }
+
+    function resetForNextMotive() {
+      if (isResetting) return;
+      isResetting = true;
+      isDrawing = false;
+      hasStartedScratching = false;
+      lastPoint = null;
+      moveCounter = 0;
+      dustDistanceAcc = 0;
+
+      // Laufende Partikel sauber stoppen und löschen
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      particles.length = 0;
+      pCtx.clearRect(0, 0, stageWidth, stageHeight);
+
+      // Ergebnisfeld ausblenden und Hinweis wieder zeigen
+      resultBox.classList.remove("visible");
+      hintText.style.opacity = "1";
+
+      // Frische Patina-Schicht und Fortschrittsmaske im Verborgenen neu zeichnen
+      maskCtx.globalCompositeOperation = "source-over";
+      maskCtx.fillStyle = "#000";
+      maskCtx.fillRect(0, 0, MASK_W, MASK_H);
+      drawPatinaSurface(stageWidth, stageHeight);
+
+      // Patina wieder sanft über das bisherige Bild blenden, bevor das nächste Motiv geladen wird
+      stage.classList.add("is-resetting");
+      stage.classList.remove("is-scratching", "is-revealed");
+      canvas.classList.remove("revealed");
+
+      const finishReset = () => {
+        currentIndex = (currentIndex + 1) % motives.length;
+        applyMotive(currentIndex);
+        stage.classList.remove("is-resetting");
+        isRevealed = false;
+        isResetting = false;
+      };
+
+      if (prefersReducedMotion) {
+        finishReset();
+      } else {
+        setTimeout(finishReset, 380);
+      }
+    }
+
+    // Zusätzliche Absicherung für iOS Safari gegen Scrollen, Zoomen & Pull-to-Refresh beim Rubbeln
+    function preventTouchScroll(e) {
+      if (!isRevealed) {
+        e.preventDefault();
+      }
+    }
+    canvas.addEventListener("touchstart", preventTouchScroll, { passive: false });
+    canvas.addEventListener("touchmove", preventTouchScroll, { passive: false });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (isRevealed || isResetting) return;
+      isDrawing = true;
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      const pos = getPos(e);
+      lastPoint = null;
+      scratch(pos);
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isDrawing || isRevealed || isResetting) return;
+      scratch(getPos(e));
+      moveCounter++;
+      if (moveCounter % 6 === 0) checkProgress();
+    });
+
+    canvas.addEventListener("pointerup", endScratch);
+    canvas.addEventListener("pointercancel", endScratch);
+
+    reloadBtn.addEventListener("click", resetForNextMotive);
+
+    // Direkt initialisieren, damit die Patina sofort ohne Aufblitzen des Bildes liegt
+    initCanvas();
+  </script>
+</body>
+</html>
